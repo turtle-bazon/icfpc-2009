@@ -1,3 +1,6 @@
+(require 'iterate)
+(require 'ieee-floats)
+
 (defpackage :simulator
   (:use :cl :iterate))
 
