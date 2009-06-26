@@ -64,7 +64,7 @@
     (make-s-instruction :op op :r-1 r-1 
 			:imm (case op
 			       (:cmpz (cmpz-imm-code->op 
-					(ldb (byte 4 6) imm)))
+					(ldb (byte 3 7) imm)))
 			       (otherwise imm)))))
 
 (defun parse-instruction (qword)
