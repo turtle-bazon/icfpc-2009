@@ -5,6 +5,7 @@
 
 ;;; A package for VM simulator
 ;;; requires: Iterate and IEEE-FLOATS
+;;; IEEE-FLOATS: http://common-lisp.net/~sionescu/files/ieee-floats-0.1_pre20080922.tar.bz2
 
 (defstruct instruction op r-1)
 
