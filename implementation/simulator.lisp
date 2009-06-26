@@ -16,6 +16,14 @@
 
 (defstruct (s-instruction (:include instruction)) imm)
 
+(defstruct orbit-vm
+  instruction-memory
+  data-memory
+  pc
+  status-reg
+  inputs
+  outputs)
+
 (defun d-op-code->op (op-code)
   (ecase op-code
     (1 :add)
@@ -33,6 +41,14 @@
     (3 :copy)
     (4 :input)))
 
+(defun cmpz-imm-code->op (imm-code)
+  (ecase imm-code
+    (0 :ltz)
+    (1 :lez)
+    (2 :eqz)
+    (3 :gez)
+    (4 :gtz)))
+
 (defun parse-d-instruction (qword)
   (let* ((op-code (ldb (byte 4 28) qword))
          (op (d-op-code->op op-code))
@@ -45,7 +61,11 @@
          (op (s-op-code->op op-code))
          (r-1 (ldb (byte 14 0) qword))
          (imm (ldb (byte 10 14) qword)))
-    (make-s-instruction :op op :r-1 r-1 :imm imm)))
+    (make-s-instruction :op op :r-1 r-1 
+			:imm (case op
+			       (:cmpz (cmpz-imm-code->op 
+					(ldb (byte 4 6) imm)))
+			       (otherwise imm)))))
 
 (defun parse-instruction (qword)
   (if (/= 0 (ldb (byte 4 28) qword))
