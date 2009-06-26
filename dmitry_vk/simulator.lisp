@@ -1,5 +1,6 @@
 (defpackage :simulator
-  (:use :cl :iterate))
+  (:use :cl :iterate)
+  (:export :create-simulator))
 
 (in-package :simulator)
 
@@ -70,6 +71,18 @@
                     instruction-word (read-integer-little-endian stream 4))
               (setf instruction-word (read-integer-little-endian stream 4)
                     data-word (read-integer-little-endian stream 8)))
-          (collect (parse-instruction instruction-word) into instructions)
-          (collect (parse-double data-word) into datas)
+          (collect (parse-instruction instruction-word) into instructions result-type (vector instruction))
+          (collect (parse-double data-word) into datas result-type (vector double-float))
           (finally (return (values instructions datas))))))
+
+
+(defstruct simulator ip instructions data status input output)
+
+(defun create-simulator (obf-file-path)
+  (multiple-value-bind (instructions numbers) (parse-obf obf-file-path)
+    (make-simulator :ip 0
+                    :instructions instructions
+                    :data numbers
+                    :status 0
+                    :input (make-array (expt 2 14) :element-type 'double-float :initial-element 0.0d0)
+                    :output (make-array (expt 2 14) :element-type 'double-float :initial-element 0.0d0))))
