@@ -2,11 +2,15 @@
 
 (defconstant +mass-earth+ (* 6 (expt 10 24)))
 
+(defconstant +mass-moon+ (* 7.347 (expt 10 22)))
+
 (defconstant +radius-earth+ (* 6.357 (expt 10 6)))
 
 (defconstant +gravity-constant+ (* 6.67428 (expt 10 -11)))
 
 (defconstant +gravitational-parameter+ (* +gravity-constant+ +mass-earth+))
+
+(defconstant +gravitational-parameter-moon+ (* +gravity-constant+ +mass-moon+))
 
 (defun distance-between-bodies (sx1 sy1 sx2 sy2)
   (sqrt
@@ -16,9 +20,15 @@
 (defun distance-to-earth (sx sy)
   (distance-between-bodies sx sy 0 0))
 
-(defun gravity-force (radius)
-  (/ (* +gravity-constant+ +mass-earth+)
+(defun gravity-force-common (radius mass)
+  (/ (* +gravity-constant+ mass)
      (expt radius 2)))
+
+(defun gravity-force (radius)
+  (gravity-force-common radius +mass-earth+))
+
+(defun gravity-force-to-moon (radius)
+  (gravity-force-common radius +mass-moon+))
 
 (defun vector-length (x y)
   (sqrt
