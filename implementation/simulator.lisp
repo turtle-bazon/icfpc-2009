@@ -7,7 +7,15 @@
   (:export :create-simulator
            :configure-simulator
            :step-simulator
-           :simulator-info))
+           :simulator-info
+
+           :make-control-structure
+           :control-structure-v-x
+           :control-structure-v-y
+           :control-structure-vm-wait
+           :control-structure-vm-signal
+           :control-structure-ctl-wait
+           :control-structure-ctl-signal))
 
 (in-package :simulator)
 
