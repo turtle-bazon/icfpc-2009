@@ -260,4 +260,6 @@
 	     (list :fueling-rel-x (simulator-output-port simulator 4)
 		   :fueling-rel-y (simulator-output-port simulator 5)
 		   :fuel-remaining-on-station (simulator-output-port simulator 6)
-		   :target-satellites (satellites-info simulator 7 12) )))))
+		   :target-satellites (satellites-info simulator 7 12)
+		   :moon-rel-x (simulator-output-port simulator #x64)
+		   :moon-rel-y (simulator-output-port simulator #x65))))))
