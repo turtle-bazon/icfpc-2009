@@ -3,7 +3,10 @@
 
 (defpackage :simulator
   (:use :cl :iterate)
-  (:export :create-simulator))
+  (:export :create-simulator
+           :configure-simulator
+           :step-simulator
+           :simulator-info))
 
 (in-package :simulator)
 
@@ -98,7 +101,7 @@
           (collect (parse-double data-word) into datas result-type (vector double-float))
           (finally (return (values instructions datas))))))
 
-(defstruct simulator ip instructions data status input output)
+(defstruct simulator ip instructions data status input output step-function)
 
 (defun simulator-data-cell (simulator index)
   (aref (simulator-data simulator) index))
@@ -126,16 +129,22 @@
 
 (defun create-simulator (obf-file-path)
   (multiple-value-bind (instructions numbers) (parse-obf obf-file-path)
-    (make-simulator :ip 0
-                    :instructions instructions
-                    :data numbers
-                    :status 0
-                    :input (make-array (expt 2 14) :element-type 'double-float :initial-element 0.0d0)
-                    :output (make-array (expt 2 14) :element-type 'double-float :initial-element 0.0d0))))
+    (let ((simulator (make-simulator :ip 0
+                                     :instructions instructions
+                                     :data numbers
+                                     :status 0
+                                     :input (make-array (expt 2 14) :element-type 'double-float :initial-element 0.0d0)
+                                     :output (make-array (expt 2 14) :element-type 'double-float :initial-element 0.0d0))))
+      (compile-simulator simulator)
+      simulator)))
 
 (defgeneric instruction->sexp (op ip instruction simulator-var))
 
-(defun simulator->function (simulator)
+(defun compile-simulator (simulator)
+  (setf (simulator-step-function simulator)
+        (simulator->step-function simulator)))
+
+(defun simulator->step-function (simulator)
   (compile nil (simulator-code->lambda simulator)))
 
 (defun simulator-code->lambda (simulator)
@@ -209,3 +218,31 @@
 (defmethod instruction->sexp ((op (eql :input)) ip instruction simulator-var)
   `(setf (simulator-data-cell ,simulator-var ,ip)
          (simulator-input-port ,simulator-var ,(instruction-r-1 instruction))))
+
+(defconstant +delta-v-x-port+ 2)
+
+(defconstant +delta-v-y-port+ 3)
+
+(defconstant +configuration-port+ #x3e80)
+
+(defun configure-simulator (simulator configuration)
+  (setf (simulator-input-port simulator +configuration-port+) (coerce configuration 'double-float)))
+
+(defun set-thrust-vector (simulator v-x v-y)
+  (setf (simulator-input-port simulator +delta-v-x-port+) (coerce v-x 'double-float)
+        (simulator-input-port simulator +delta-v-y-port+) (coerce v-y 'double-float)))
+
+(defun step-simulator (simulator v-x v-y)
+  (set-thrust-vector simulator v-x v-y)
+  (funcall (simulator-step-function simulator) simulator)
+  (values))
+
+(defun simulator-info (simulator problem)
+  (nconc (list :score (simulator-output-port simulator 0)
+               :fuel-remaining (simulator-output-port simulator 1)
+               :our-x (simulator-output-port simulator 2)
+               :our-y (simulator-output-port simulator 3))
+         (ecase problem
+           (:hohmann (list :target-orbit-radius (simulator-output-port simulator 4)))
+           ((:meet-and-greet :eccentric-meet-and-greet) (list :target-x (simulator-output-port simulator 4)
+                                                              :target-y (simulator-output-port simulator 5))))))
