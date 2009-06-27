@@ -6,6 +6,8 @@
 
 (defconstant +gravity-constant+ (* 6.67428 (expt 10 -11)))
 
+(defconstant +gravitational-parameter+ (* +gravity-constant+ +mass-earth+))
+
 (defun distance-between-bodies (sx1 sy1 sx2 sy2)
   (sqrt
     (+ (expt (- sx2 sx1) 2)
@@ -17,3 +19,4 @@
 (defun gravity-force (radius)
   (/ (* +gravity-constant+ +mass-earth+)
      (expt radius 2)))
+
