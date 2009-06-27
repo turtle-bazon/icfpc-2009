@@ -21,7 +21,7 @@
   (write-little-endian (dumper-stream dumper) scenario-id 4))
 
 (defun output-difference (stream timestep frame last-frame)
-  (let ((differences-count (iter (for i from 0 to (- (expt 2 14) 1))
+  (let ((differences-count (iter (for i in '(2 3 #x3e80))
                                  (for v-1 = (aref frame i))
                                  (for v-2 = (aref last-frame i))
                                  (count (/= v-1 v-2)))))
@@ -29,7 +29,7 @@
       #+nil(format t "~A differences~%" differences-count)
       (write-little-endian stream timestep 4)
       (write-little-endian stream differences-count 4)
-      (iter (for i from 0 to (- (expt 2 14) 1))
+      (iter (for i in '(2 3 #x3e80))
             (for v-1 = (aref frame i))
             (for v-2 = (aref last-frame i))
             (unless (= v-1 v-2)
