@@ -51,12 +51,12 @@ n-th tick - second thrust"
   (let ((state :first)
         first-tick-angle
         second-tick-angle
-        thrust-angle
         rotation
         r-1
         r-2
         first-thrust
-        second-thrust)
+        second-thrust
+        (max-radius 0.0d0))
     (flet ((first-tick (simulator)
              (let* ((info (simulator-info simulator :hohmann))
                     (our-x (getf info :our-x))
@@ -73,13 +73,28 @@ n-th tick - second thrust"
                     (our-x (getf info :our-x))
                     (our-y (getf info :our-y)))
                (setf second-tick-angle (atan our-y our-x)
-                     rotation (if (< first-tick-angle second-tick-angle) :ccw :cw)
-                     thrust-angle (+ second-tick-angle pi))
+                     rotation (if (< first-tick-angle second-tick-angle) :ccw :cw))
                (multiple-value-bind (t-x t-y) (tangent-vector our-x our-y rotation)
                  (values (* t-x first-thrust)
-                         (* t-y second-thrust)))))
-           (should-fire-second-thrust (simulator) nil)
-           (fire-second-thrust (simulator)))
+                         (* t-y first-thrust)))))
+           (should-fire-second-thrust (simulator)
+             (let* ((info (simulator-info simulator :hohmann))
+                    (our-x (getf info :our-x))
+                    (our-y (getf info :our-y))
+                    (radius (vector-length our-x our-y)))
+               (if (< radius max-radius)
+                   t
+                   (progn (setf max-radius radius)
+                          nil))))
+           (fire-second-thrust (simulator)
+             (let* ((info (simulator-info simulator :hohmann))
+                    (our-x (getf info :our-x))
+                    (our-y (getf info :our-y)))
+               (setf second-tick-angle (atan our-y our-x)
+                     rotation (if (< first-tick-angle second-tick-angle) :ccw :cw))
+               (multiple-value-bind (t-x t-y) (tangent-vector our-x our-y rotation)
+                 (values (* t-x second-thrust)
+                         (* t-y second-thrust))))))
       (lambda (simulator)
         (ecase state
           (:first (setf state :second)(first-tick simulator))
@@ -89,3 +104,21 @@ n-th tick - second thrust"
                                        (fire-second-thrust simulator))
                                 (values 0 0)))
           (:idle (values 0 0)))))))
+
+(defun hohmann-finish-predicate (&optional (steps (expt 10 6)))
+  (let ((seconds 0)
+        (counter 0))
+    (lambda (simulator)
+      (block nil
+        (when (>= (incf counter) steps) (return t))
+        (let* ((info (simulator-info simulator :hohmann))
+               (our-x (getf info :our-x))
+               (our-y (getf info :our-y))
+               (target-range (getf info :target-orbit-radius))
+               (range (vector-length our-x our-y)))
+          (if (<= (abs (- range target-range)))
+              (incf seconds)
+              (setf seconds 0))
+          (when (>= seconds 1000)
+            (format t "reached target-range: ~A!~%" target-range)
+            t))))))
