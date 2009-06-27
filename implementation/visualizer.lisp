@@ -36,7 +36,10 @@
     (iter (until (funcall finish-predicate simulator))
           (for (values v-x v-y) = (funcall thrust-function simulator))
           (step-simulator simulator v-x v-y)
-          (visualizer-collect visualizer simulator))
+          (visualizer-collect visualizer simulator)
+          (when (> (getf (simulator-info simulator :hohmann) :score) 0.0d0)
+            (format t "Score: ~A~%" (getf (simulator-info simulator :hohmann) :score))
+            (finish)))
     (visualizer-save visualizer result-path)))
 
 (defun visualizer-collect (visualizer simulator)
