@@ -1,5 +1,6 @@
-(require 'iterate)
-(require 'ieee-floats)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require 'iterate)
+  (require 'ieee-floats))
 
 (defpackage :simulator
   (:use :cl :iterate)
