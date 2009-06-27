@@ -245,5 +245,5 @@
                :our-y (simulator-output-port simulator 3))
          (ecase problem
            (:hohmann (list :target-orbit-radius (simulator-output-port simulator 4)))
-           ((:meet-and-greet :eccentric-meet-and-greet) (list :target-x (simulator-output-port simulator 4)
-                                                              :target-y (simulator-output-port simulator 5))))))
+           ((:meet-and-greet :eccentric-meet-and-greet) (list :target-rel-x (simulator-output-port simulator 4)
+                                                              :target-rel-y (simulator-output-port simulator 5))))))
