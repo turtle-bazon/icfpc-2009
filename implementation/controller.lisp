@@ -103,13 +103,30 @@
               (setf max-radius radius
                     (control-structure-v-x c) 0.0d0
                     (control-structure-v-y c) 0.0d0))
-          (control-structure-ctl-signal c))))
+          (control-structure-ctl-signal c))
+    (control-structure-ctl-wait c)))
+
+(defun skip-turns (c)
+  (iter (while t)
+        (setf (control-structure-v-x c) 0.0d0
+              (control-structure-v-y c) 0.0d0)
+        (control-structure-ctl-signal c)
+        (control-structure-ctl-wait c)))
 
 (defun hohmann-control-function (c)
   (control-structure-ctl-wait c)
   (hohmann-change-circular-orbit c (getf (simulator-info (control-structure-simulator c) :hohmann) :target-orbit-radius))
-  (iter (while t)
-        (control-structure-ctl-wait c)
-        (setf (control-structure-v-x c) 0.0d0
-              (control-structure-v-y c) 0.0d0)
-        (control-structure-ctl-signal c)))
+  (skip-turns c))
+
+(defun meet-and-greet-control (c)
+  (control-structure-ctl-wait c)
+  (let* ((info (simulator-info (control-structure-simulator c) :meet-and-greet))
+         (rel-x (getf info :target-rel-x))
+         (rel-y (getf info :target-rel-y))
+         (x (getf info :our-x))
+         (y (getf info :our-y))
+         (target-x (- rel-x x))
+         (target-y (- rel-y y))
+         (target-radius (vector-length target-x target-y)))
+    (hohmann-change-circular-orbit c target-radius))
+  (skip-turns c))
