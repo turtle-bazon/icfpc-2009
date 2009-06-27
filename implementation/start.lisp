@@ -9,12 +9,13 @@
     (:meet-ang-greet 2)))
 
 (defun display-hohmann-info (info)
-  (format t "R:~a, X:~a, Y:~a, F:~a, TR:~a~%"
+  (format t "R:~a, X:~a, Y:~a, F:~a, TR:~a, S:~a~%"
 	  (distance-to-earth (getf info :our-x) (getf info :our-y))
 	  (getf info :our-x)
 	  (getf info :our-y)
 	  (getf info :fuel-remaining)
 	  (getf info :target-orbit-radius)
+	  (getf info :score)
 	  ))
 
 (defun step-V (info step)
@@ -34,6 +35,7 @@
 	  (- (sqrt (/ (* 2 r2)
 		      (+ r1 r2)))
 	     1))))
+       (format t "~a~%" vval)
        (values (* vval cosa) (* vval sina))
        ))
     (otherwise (values 0 0))
@@ -44,7 +46,7 @@
   (let ((simulator (create-simulator (format nil "../task/bin~a.obf" (problem-number problem)))))
     (configure-simulator simulator scenario)
     (step-simulator simulator 0 0)
-    (dotimes (i 10000)
+    (dotimes (i 1)
       (multiple-value-bind (vx vy)
 	(step-V (simulator-info simulator problem) i)
 	(step-simulator simulator (- 0 vx) (- 0 vy)))
