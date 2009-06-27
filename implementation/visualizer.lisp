@@ -25,7 +25,7 @@
 
 (defun visualize-run (result-path obf-path configuration
                       &key
-                      (max-steps 1000)
+                      (max-steps 50000)
                       (thrust-function #'noop-thrust-function)
                       solution)
   (let ((simulator (create-simulator obf-path))
@@ -58,7 +58,7 @@
     (setf (visualizer-target-radius visualizer)
           (getf info :target-orbit-radius))))
 
-(defparameter *zoom* 2.5d4)
+(defparameter *zoom* 9.5d4)
 
 (defun vector-length (x y)
   (sqrt
