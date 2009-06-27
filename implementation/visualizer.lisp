@@ -34,7 +34,7 @@
     (when solution (simulator::start-dumper dumper solution simulator 247 configuration))
     (configure-simulator simulator configuration)
     (step-simulator simulator 0 0)
-    (simulator::step-dumper dumper)
+    (when solution (simulator::step-dumper dumper))
     (iter (for steps from 0)
           (when (>= steps max-steps)
             (format t "Time limit~%")
