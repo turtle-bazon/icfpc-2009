@@ -1,3 +1,6 @@
+(require 'iterate)
+(require 'ieee-floats)
+
 (defpackage :simulator
   (:use :cl :iterate)
   (:export :create-simulator))
@@ -13,6 +16,14 @@
 (defstruct (d-instruction (:include instruction)) r-2)
 
 (defstruct (s-instruction (:include instruction)) imm)
+
+(defstruct orbit-vm
+  instruction-memory
+  data-memory
+  pc
+  status-reg
+  inputs
+  outputs)
 
 (defun d-op-code->op (op-code)
   (ecase op-code
@@ -31,6 +42,14 @@
     (3 :copy)
     (4 :input)))
 
+(defun cmpz-imm-code->op (imm-code)
+  (ecase imm-code
+    (0 :ltz)
+    (1 :lez)
+    (2 :eqz)
+    (3 :gez)
+    (4 :gtz)))
+
 (defun parse-d-instruction (qword)
   (let* ((op-code (ldb (byte 4 28) qword))
          (op (d-op-code->op op-code))
@@ -43,7 +62,11 @@
          (op (s-op-code->op op-code))
          (r-1 (ldb (byte 14 0) qword))
          (imm (ldb (byte 10 14) qword)))
-    (make-s-instruction :op op :r-1 r-1 :imm imm)))
+    (make-s-instruction :op op :r-1 r-1 
+			:imm (case op
+			       (:cmpz (cmpz-imm-code->op 
+					(ldb (byte 3 7) imm)))
+			       (otherwise imm)))))
 
 (defun parse-instruction (qword)
   (if (/= 0 (ldb (byte 4 28) qword))
@@ -74,7 +97,6 @@
           (collect (parse-instruction instruction-word) into instructions result-type (vector instruction))
           (collect (parse-double data-word) into datas result-type (vector double-float))
           (finally (return (values instructions datas))))))
-
 
 (defstruct simulator ip instructions data status input output)
 
