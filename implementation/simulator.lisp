@@ -2,7 +2,8 @@
 (require 'ieee-floats)
 
 (defpackage :simulator
-  (:use :cl :iterate))
+  (:use :cl :iterate)
+  (:export :create-simulator))
 
 (in-package :simulator)
 
@@ -93,6 +94,115 @@
                     instruction-word (read-integer-little-endian stream 4))
               (setf instruction-word (read-integer-little-endian stream 4)
                     data-word (read-integer-little-endian stream 8)))
-          (collect (parse-instruction instruction-word) into instructions)
-          (collect (parse-double data-word) into datas)
+          (collect (parse-instruction instruction-word) into instructions result-type (vector instruction))
+          (collect (parse-double data-word) into datas result-type (vector double-float))
           (finally (return (values instructions datas))))))
+
+(defstruct simulator ip instructions data status input output)
+
+(defun simulator-data-cell (simulator index)
+  (aref (simulator-data simulator) index))
+
+(defun (setf simulator-data-cell) (new-value simulator index)
+  (setf (aref (simulator-data simulator) index) new-value))
+
+(defun simulator-input-port (simulator index)
+  (aref (simulator-input simulator) index))
+
+(defun (setf simulator-input-port) (new-value simulator index)
+  (setf (aref (simulator-input simulator) index) new-value))
+
+(defun simulator-output-port (simulator index)
+  (aref (simulator-output simulator) index))
+
+(defun (setf simulator-output-port) (new-value simulator index)
+  (setf (aref (simulator-output simulator) index) new-value))
+
+(defun simulator-current-data-cell (simulator)
+  (simulator-data-cell simulator (simulator-ip simulator)))
+
+(defun (setf simulator-current-data-cell) (new-value simulator)
+  (setf (simulator-data-cell simulator (simulator-ip simulator)) new-value))
+
+(defun create-simulator (obf-file-path)
+  (multiple-value-bind (instructions numbers) (parse-obf obf-file-path)
+    (make-simulator :ip 0
+                    :instructions instructions
+                    :data numbers
+                    :status 0
+                    :input (make-array (expt 2 14) :element-type 'double-float :initial-element 0.0d0)
+                    :output (make-array (expt 2 14) :element-type 'double-float :initial-element 0.0d0))))
+
+(defgeneric instruction->sexp (op ip instruction simulator-var))
+
+(defun simulator-code->lambda (simulator)
+  (let ((simulator-var (gensym "SIMULATOR")))
+    `(lambda (,simulator-var)
+       ,@(iter (for instruction in-vector (simulator-instructions simulator))
+               (for ip from 0)
+               (for op = (instruction-op instruction))
+               (for sexp = (instruction->sexp op ip instruction simulator-var))
+               (collect sexp)))))
+
+(defmethod instruction->sexp ((op (eql :add)) ip instruction simulator-var)
+  `(setf (simulator-data-cell ,simulator-var ,ip)
+         (+ (simulator-data-cell ,simulator-var ,(instruction-r-1 instruction))
+            (simulator-data-cell ,simulator-var ,(d-instruction-r-2 instruction)))))
+
+(defmethod instruction->sexp ((op (eql :sub)) ip instruction simulator-var)
+  `(setf (simulator-data-cell ,simulator-var ,ip)
+         (- (simulator-data-cell ,simulator-var ,(instruction-r-1 instruction))
+            (simulator-data-cell ,simulator-var ,(d-instruction-r-2 instruction)))))
+
+(defmethod instruction->sexp ((op (eql :mult)) ip instruction simulator-var)
+  `(setf (simulator-data-cell ,simulator-var ,ip)
+         (* (simulator-data-cell ,simulator-var ,(instruction-r-1 instruction))
+            (simulator-data-cell ,simulator-var ,(d-instruction-r-2 instruction)))))
+
+(defmethod instruction->sexp ((op (eql :div)) ip instruction simulator-var)
+  `(setf (simulator-data-cell ,simulator-var ,ip)
+         (if (= 0.0d0 (simulator-data-cell ,simulator-var ,(d-instruction-r-2 instruction)))
+             0.0d0
+             (/ (simulator-data-cell ,simulator-var ,(instruction-r-1 instruction))
+                (simulator-data-cell ,simulator-var ,(d-instruction-r-2 instruction))))))
+
+(defmethod instruction->sexp ((op (eql :output)) ip instruction simulator-var)
+  `(setf (simulator-output-port ,simulator-var ,(instruction-r-1 instruction))
+         (simulator-data-cell ,(d-instruction-r-2 instruction))))
+
+(defmethod instruction->sexp ((op (eql :phi)) ip instruction simulator-var)
+  `(setf (simulator-data-cell ,simulator-var ,ip)
+         (simulator-data-cell ,simulator-var
+                              (if (= (simulator-status ,simulator-var) 1)
+                                  ,(instruction-r-1 instruction)
+                                  ,(d-instruction-r-2 instruction)))))
+
+(defmethod instruction->sexp ((op (eql :noop)) ip instruction simulator-var)
+  nil)
+
+(defun cmpz-imm->function (imm)
+  (ecase imm
+    (:ltz '<)
+    (:lez '<=)
+    (:eqz '=)
+    (:gez '>=)
+    (:gtz '>)))
+
+(defmethod instruction->sexp ((op (eql :cmpz)) ip instruction simulator-var)
+  (let ((op (cmpz-imm->function (s-instruction-imm instruction))))
+    `(setf (simulator-status ,simulator-var)
+           (if (,op (simulator-data-cell ,simulator-var ,(instruction-r-1 instruction)) 0.0d0)
+               1
+               0))))
+
+(defmethod instruction->sexp ((op (eql :sqrt)) ip instruction simulator-var)
+  `(setf (simulator-data-cell ,simulator-var ,ip)
+         (abs (sqrt (simulator-data-cell ,simulator-var ,(instruction-r-1 instruction))))))
+
+(defmethod instruction->sexp ((op (eql :copy)) ip instruction simulator-var)
+  `(setf (simulator-data-cell ,simulator-var ,ip)
+         (simulator-data-cell ,simulator-var ,(instruction-r-1 instruction))))
+
+(defmethod instruction->sexp ((op (eql :input)) ip instruction simulator-var)
+  `(setf (simulator-data-cell ,simulator-var ,ip)
+         (simulator-input-port ,simulator-var ,(instruction-r-1 instruction))))
