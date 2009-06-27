@@ -13,3 +13,7 @@
 
 (defun distance-to-earth (sx sy)
   (distance-between-bodies sx sy 0 0))
+
+(defun gravity-force (radius)
+  (/ (* +gravity-constant+ +mass-earth+)
+     (expt radius 2)))
