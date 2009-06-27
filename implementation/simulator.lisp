@@ -135,6 +135,9 @@
 
 (defgeneric instruction->sexp (op ip instruction simulator-var))
 
+(defun simulator->function (simulator)
+  (compile nil (simulator-code->lambda simulator)))
+
 (defun simulator-code->lambda (simulator)
   (let ((simulator-var (gensym "SIMULATOR")))
     `(lambda (,simulator-var)
@@ -168,7 +171,7 @@
 
 (defmethod instruction->sexp ((op (eql :output)) ip instruction simulator-var)
   `(setf (simulator-output-port ,simulator-var ,(instruction-r-1 instruction))
-         (simulator-data-cell ,(d-instruction-r-2 instruction))))
+         (simulator-data-cell ,simulator-var ,(d-instruction-r-2 instruction))))
 
 (defmethod instruction->sexp ((op (eql :phi)) ip instruction simulator-var)
   `(setf (simulator-data-cell ,simulator-var ,ip)
