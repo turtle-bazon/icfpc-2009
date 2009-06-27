@@ -25,15 +25,16 @@
 
 (defun visualize-run (result-path obf-path configuration
                       &key
-                      (finish-predicate 1000)
+                      (max-steps 1000)
                       (thrust-function #'noop-thrust-function))
-  (when (integerp finish-predicate)
-    (setf finish-predicate (make-steps-finish-predicate finish-predicate)))
   (let ((simulator (create-simulator obf-path))
         (visualizer (make-visualizer)))
     (configure-simulator simulator configuration)
     (step-simulator simulator 0 0)
-    (iter (until (funcall finish-predicate simulator))
+    (iter (for steps from 0)
+          (when (>= steps max-steps)
+            (format t "Time limit~%")
+            (finish))
           (for (values v-x v-y) = (funcall thrust-function simulator))
           (step-simulator simulator v-x v-y)
           (visualizer-collect visualizer simulator)
