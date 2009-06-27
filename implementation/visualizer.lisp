@@ -9,7 +9,8 @@
 
 (defstruct visualizer
   (xs (make-array 0 :element-type 'double-float :adjustable t :fill-pointer t))
-  (ys (make-array 0 :element-type 'double-float :adjustable t :fill-pointer t)))
+  (ys (make-array 0 :element-type 'double-float :adjustable t :fill-pointer t))
+  target-radius)
 
 (defun make-steps-finish-predicate (steps)
   (let ((counter 0))
@@ -35,7 +36,6 @@
     (iter (until (funcall finish-predicate simulator))
           (for (values v-x v-y) = (funcall thrust-function simulator))
           (step-simulator simulator v-x v-y)
-          (funcall thrust-function simulator)
           (visualizer-collect visualizer simulator))
     (visualizer-save visualizer result-path)))
 
@@ -44,9 +44,16 @@
          (our-x (getf info :our-x))
          (our-y (getf info :our-y)))
     (vector-push-extend our-x (visualizer-xs visualizer))
-    (vector-push-extend our-y (visualizer-ys visualizer))))
+    (vector-push-extend our-y (visualizer-ys visualizer))
+    (setf (visualizer-target-radius visualizer)
+          (getf info :target-orbit-radius))))
 
 (defparameter *zoom* 2.5d4)
+
+(defun vector-length (x y)
+  (sqrt
+   (+ (expt x 2)
+      (expt y 2))))
 
 (defun visualizer-save (visualizer result-path)
   (let ((dx (+ (/ 6.357d6 *zoom*) 100)))
@@ -55,6 +62,11 @@
         (format stream "<?xml version='1.0' encoding='UTF-8'?>~%")
         (format stream "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'>~%")
         (format stream "<circle cx='~A' cy='~A' r='~F' style='stroke: #000000; fill:#00ff00;' />~%" (coord 0) (coord 0) (/ 6.357d6 *zoom*))
+        (format stream "<circle cx='~A' cy='~A' r='~F' style='stroke: #ff0000; fill:transparent;' />~%" (coord 0) (coord 0)
+                (/ (visualizer-target-radius visualizer) *zoom*))
+        (format stream "<circle cx='~A' cy='~A' r='~F' style='stroke: #0000ff; fill:transparent;' />~%" (coord 0) (coord 0)
+                (/ (vector-length (aref (visualizer-xs visualizer) 0)
+                                  (aref (visualizer-ys visualizer) 0)) *zoom*))
         (iter (for x in-vector (visualizer-xs visualizer))
               (for y in-vector (visualizer-ys visualizer))
               (for p-x previous x)
