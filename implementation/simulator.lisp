@@ -238,6 +238,15 @@
   (funcall (simulator-step-function simulator) simulator)
   (values))
 
+(defun satellites-info (simulator start count)
+  (if (= count 0)
+    '()
+    (cons
+      (list :target-rel-x (simulator-output-port simulator start)
+	    :target-rel-y (simulator-output-port simulator (+ start 1))
+	    :target-collected (simulator-output-port simulator (+ start 2)))
+      (satellites-info simulator (+ start 3) (- count 1)))))
+
 (defun simulator-info (simulator problem)
   (nconc (list :score (simulator-output-port simulator 0)
                :fuel-remaining (simulator-output-port simulator 1)
@@ -246,4 +255,9 @@
          (ecase problem
            (:hohmann (list :target-orbit-radius (simulator-output-port simulator 4)))
            ((:meet-and-greet :eccentric-meet-and-greet) (list :target-rel-x (simulator-output-port simulator 4)
-                                                              :target-rel-y (simulator-output-port simulator 5))))))
+                                                              :target-rel-y (simulator-output-port simulator 5)))
+	   (:operation-clear-skies
+	     (list :fueling-rel-x (simulator-output-port simulator 4)
+		   :fueling-rel-y (simulator-output-port simulator 5)
+		   :fuel-remaining-on-station (simulator-output-port simulator 6)
+		   :target-satellites (satellites-info simulator 7 12) )))))
