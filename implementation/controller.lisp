@@ -30,6 +30,21 @@
 (defun gravity-force-to-moon (radius)
   (gravity-force-common radius +mass-moon+))
 
+(defun rotation-period (radius)
+  (* 2 pi
+     (sqrt (* +gravitational-parameter+ radius))))
+
+(defun time-to-change-orbit (from-radius to-radius)
+  (* pi
+     (sqrt (/ (expt (+ from-radius to-radius) 3)
+	      (* 8 +gravitational-parameter+)))))
+
+(defun time-diff-to-meet (from-radius to-radius)
+  (multiple-value-bind (k time)
+    (floor (time-to-change-orbit from-radius to-radius)
+	   (rotation-period to-radius))
+    time))
+
 (defun vector-length (x y)
   (sqrt
    (+ (expt x 2)
