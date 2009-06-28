@@ -161,12 +161,19 @@
           (control-structure-ctl-signal c))
     (control-structure-ctl-wait c)))
 
+(defun skip-turn (c)
+  (setf (control-structure-v-x c) 0.0d0
+        (control-structure-v-y c) 0.0d0)
+  (control-structure-ctl-signal c)
+  (control-structure-ctl-wait c))
+
+(defun skip-n-turns (c n)
+  (iter (repeat n)
+        (skip-turn c)))
+
 (defun skip-turns (c)
   (iter (while t)
-        (setf (control-structure-v-x c) 0.0d0
-              (control-structure-v-y c) 0.0d0)
-        (control-structure-ctl-signal c)
-        (control-structure-ctl-wait c)))
+        (skip-turn c)))
 
 (defun hohmann-control-function (c)
   (control-structure-ctl-wait c)
@@ -184,9 +191,25 @@
 (defun 2d-vector-length (vector)
   (vector-length (2d-vector-x vector) (2d-vector-y vector)))
 
+(defun 2d-vector-+ (a b)
+  (make-2d-vector :x (+ (2d-vector-x a) (2d-vector-x b))
+                  :y (+ (2d-vector-y a) (2d-vector-y b))))
+
 (defun 2d-vector-- (a b)
   (make-2d-vector :x (- (2d-vector-x a) (2d-vector-x b))
                   :y (- (2d-vector-y a) (2d-vector-y b))))
+
+(defun 2d-vector-* (c a)
+  (make-2d-vector :x (* c (2d-vector-x a))
+                  :y (* c (2d-vector-y a))))
+
+(defun 2d-vector-normalize (v)
+  (2d-vector-* (/ 1 (2d-vector-length v)) v))
+
+(defun 2d-vector-perp (v rotation)
+  (ecase rotation
+    (:ccw (make-2d-vector :x (- (2d-vector-y v)) :y (2d-vector-x v)))
+    (:cw (make-2d-vector :x (2d-vector-y v) :y (- (2d-vector-x v))))))
 
 (defun angular-speed-at-orbit (radius)
   (sqrt (/ +gravitational-parameter+ (expt radius 3))))
@@ -210,6 +233,52 @@
     (format t "time to change orbit = ~F~%" tau)
     wait-time))
 
+(defun our-position (c)
+  (let* ((info (simulator-info (control-structure-simulator c) :hohmann))
+         (x (getf info :our-x))
+         (y (getf info :our-y)))
+    (make-2d-vector :x x :y y)))
+
+(defun target-position (c)
+  (let* ((info (simulator-info (control-structure-simulator c) :meet-and-greet))
+         (x (getf info :our-x))
+         (y (getf info :our-y))
+         (target-x (- x (getf info :target-rel-x)))
+         (target-y (- y (getf info :target-rel-y))))
+    (make-2d-vector :x target-x :y target-y)))
+
+(defun correct-orbit (c delta-angle)
+  (let* ((position (our-position c))
+         (r (2d-vector-length position))
+         (v (sqrt (* (gravity-force r) r)))
+         (delta-v-tangential (* r delta-angle))
+         (delta-v-normal (- (/ (expt (+ v delta-v-tangential) 2)
+                               r)
+                            (gravity-force r)))
+         (normal (2d-vector-* -1 (2d-vector-normalize position)))
+         (tangent (2d-vector-normalize (2d-vector-perp position :ccw)))
+         (thrust (2d-vector-+ (2d-vector-* delta-v-tangential tangent)
+                              (2d-vector-* delta-v-normal normal))))
+    (format t "position = ~A~%r = ~A~%v = ~A~%d-v-t = ~A~%d-v-n = ~A~%normal = ~A~%tangent = ~A~%thrust = ~A~%"
+            position r v delta-v-tangential delta-v-normal normal tangent thrust)
+    (setf (control-structure-v-x c) (2d-vector-x thrust)
+          (control-structure-v-y c) (2d-vector-y thrust))
+    (control-structure-ctl-signal c)
+    (control-structure-ctl-wait c)
+    (setf (control-structure-v-x c) (- (2d-vector-x thrust))
+          (control-structure-v-y c) (- (2d-vector-y thrust)))
+    (control-structure-ctl-signal c)
+    (control-structure-ctl-wait c)
+    #+nil(let* ((position (our-position c))
+           (normal (2d-vector-* -1 (2d-vector-normalize position)))
+           (tangent (2d-vector-normalize (2d-vector-perp position :ccw)))
+           (thrust (2d-vector-* -1 (2d-vector-+ (2d-vector-* delta-v-tangential tangent)
+                                                (2d-vector-* delta-v-normal normal)))))
+      (setf (control-structure-v-x c) (2d-vector-x thrust)
+            (control-structure-v-y c) (2d-vector-y thrust))
+      (control-structure-ctl-signal c)
+      (control-structure-ctl-wait c))))
+
 (defun meet-and-greet-control (c)
   (control-structure-ctl-wait c)
   (let* ((info (simulator-info (control-structure-simulator c) :meet-and-greet))
@@ -223,7 +292,7 @@
          (r-2 (2d-vector-length target-position)))
     (format t "position = ~A,~%target-position = ~A,~%wait-time = ~A, r-2 = ~A~%"
             position target-position wait-time r-2)
-    (iter (repeat (truncate wait-time))
+    (iter (repeat (round wait-time))
           (setf (control-structure-v-x c) 0
                 (control-structure-v-y c) 0)
           (control-structure-ctl-signal c)
@@ -240,4 +309,18 @@
               position target-position
               (2d-vector-length (2d-vector-- position target-position))
               (2d-vector-length position) (2d-vector-length target-position))))
+  #+nil(iter (repeat 10)
+             (let* ((position (our-position c))
+                    (target-position (target-position c))
+                    (delta-angle (* -1
+                                    (- (polar-angle target-position)
+                                       (polar-angle position)))))
+               (correct-orbit c delta-angle))
+             (format t "distance = ~A~%" (2d-vector-length (2d-vector-- (our-position c) (target-position c))))
+             (skip-n-turns c 100))
+  #+nil(iter (repeat 900)
+             (for i from 0)
+             (skip-turn c)
+             (when (zerop (mod i 100))
+               (format t "distance = ~A~%" (2d-vector-length (2d-vector-- (our-position c) (target-position c))))))
   (skip-turns c))
