@@ -32,7 +32,8 @@
 
 (defun rotation-period (radius)
   (* 2 pi
-     (sqrt (* +gravitational-parameter+ radius))))
+     (sqrt (/ (expt radius 3)
+	      +gravitational-parameter+))))
 
 (defun time-to-change-orbit (from-radius to-radius)
   (* pi
@@ -49,6 +50,21 @@
   (sqrt
    (+ (expt x 2)
       (expt y 2))))
+
+(defun vectors-scalar-product (x1 y1 x2 y2)
+  (+ (* x1 x2)
+     (* y1 y2)))
+
+(defun cosin-between-vectors (x1 y1 x2 y2)
+  (/ (vectors-scalar-product x1 y1 x2 y2)
+     (* (vector-length x1 y1) (vector-length x2 y2))))
+
+(defun disposition-between-vectors (x1 y1 x2 y2)
+  (let ((c (- (* x1 y2)
+	      (* x2 y1))))
+    (if (> c 0)
+      :rightmost
+      :leftmost)))
 
 (defun tangent-vector (x y rotation)
   (let ((l (vector-length x y)))
@@ -131,6 +147,11 @@
                        (let ((z (if (< r-1 r-2) second-thrust (- first-thrust))))
                          (setf (control-structure-v-x c) (* t-x z)
                                (control-structure-v-y c) (* t-y z))))
+
+		     (let ((info2 (simulator-info simulator :meet-and-greet)))
+		       (format t "O: ~a, ~a~%" our-x our-y)
+		       (format t "T: ~a, ~a~%" (getf info2 :target-rel-x) 
+			                       (getf info2 :target-rel-y)))
                      (format t "fired thrusters (~A, ~A)~%" (control-structure-v-x c) (control-structure-v-y c))
                      (control-structure-ctl-signal c)
                      (finish))
@@ -159,8 +180,28 @@
          (rel-y (getf info :target-rel-y))
          (x (getf info :our-x))
          (y (getf info :our-y))
-         (target-x (- rel-x x))
-         (target-y (- rel-y y))
-         (target-radius (vector-length target-x target-y)))
-    (hohmann-change-circular-orbit c target-radius))
-  (skip-turns c))
+         (target-x (- x rel-x))
+         (target-y (- y rel-y))
+	 (current-radius (vector-length x y))
+         (target-radius (vector-length target-x target-y))
+	 (time-diff-to-meet (time-diff-to-meet current-radius target-radius))
+	 (cosa (cosin-between-vectors x y target-x target-y))
+	 (costarget (cos (+ pi (* time-diff-to-meet
+		       (sqrt (/ +gravitational-parameter+
+				(expt target-radius 3)))))))
+	 (disposition (disposition-between-vectors x y target-x target-y)))
+    ;(format t "~a, ~a, ~a, ~a~%" (- cosa costarget) (* cosa (/ pi 180)) 
+    ;                                   	    (* costarget (/ pi 180)) disposition)
+    (if (and (< (abs (- cosa costarget)) 0.0001d0)
+	     (eq disposition :rightmost))
+      (progn
+	(format t "T: ~a, ~a~%" target-x target-y)
+	(format t "O: ~a, ~a~%" x y)
+	(format t "TTO: ~a~%" time-diff-to-meet)
+	(format t "RP: ~a~%" (rotation-period target-radius))
+	(hohmann-change-circular-orbit c target-radius))))
+  ;(skip-turns c)
+  (setf (control-structure-v-x c) 0.0d0  
+	(control-structure-v-y c) 0.0d0)
+  (control-structure-ctl-signal c)
+  (meet-and-greet-control c))

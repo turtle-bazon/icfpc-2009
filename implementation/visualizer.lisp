@@ -32,7 +32,7 @@
 
 (defun visualize-run (result-path obf-path configuration control-function
                       &key
-                      (max-steps 50000)
+                      (max-steps 5000)
                       solution)
   (let* ((simulator (create-simulator obf-path))
          (visualizer (problem->visualizer configuration))
@@ -140,8 +140,8 @@
          (rel-y (getf info :target-rel-y))
          (x (getf info :our-x))
          (y (getf info :our-y))
-         (target-x (- rel-x x))
-         (target-y (- rel-y y)))
+         (target-x (- x rel-x))
+         (target-y (- y rel-y)))
     (vector-push-extend target-x (meet-and-greet-visualizer-target-xs visualizer))
     (vector-push-extend target-y (meet-and-greet-visualizer-target-ys visualizer))))
 
