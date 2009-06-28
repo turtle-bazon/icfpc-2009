@@ -184,6 +184,10 @@
 (defun 2d-vector-length (vector)
   (vector-length (2d-vector-x vector) (2d-vector-y vector)))
 
+(defun 2d-vector-- (a b)
+  (make-2d-vector :x (- (2d-vector-x a) (2d-vector-x b))
+                  :y (- (2d-vector-y a) (2d-vector-y b))))
+
 (defun angular-speed-at-orbit (radius)
   (sqrt (/ +gravitational-parameter+ (expt radius 3))))
 
@@ -203,6 +207,7 @@
                            c-1)
                         (/ (- z)
                            c-1))))
+    (format t "time to change orbit = ~F~%" tau)
     wait-time))
 
 (defun meet-and-greet-control (c)
@@ -216,7 +221,7 @@
          (target-position (make-2d-vector :x target-x :y target-y))
          (wait-time (meet-and-greet-wait-time position target-position))
          (r-2 (2d-vector-length target-position)))
-    (format t "position = ~A,~% target-position = ~A,~% wait-time = ~A, r-2 = ~A~%"
+    (format t "position = ~A,~%target-position = ~A,~%wait-time = ~A, r-2 = ~A~%"
             position target-position wait-time r-2)
     (iter (repeat (truncate wait-time))
           (setf (control-structure-v-x c) 0
@@ -231,7 +236,8 @@
            (target-y (- y (getf info :target-rel-y)))
            (position (make-2d-vector :x x :y y))
            (target-position (make-2d-vector :x target-x :y target-y)))
-      (format t "position = ~A, target-position = ~A, range = ~A, target-range = ~A~%"
+      (format t "position = ~A,~%target-position = ~A,~%distance = ~A, range = ~A, target-range = ~A~%"
               position target-position
+              (2d-vector-length (2d-vector-- position target-position))
               (2d-vector-length position) (2d-vector-length target-position))))
   (skip-turns c))
