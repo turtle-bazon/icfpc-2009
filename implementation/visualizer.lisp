@@ -17,6 +17,7 @@
   (case problem
     ((1001 1002 1003 1004) (make-hohmann-visualizer))
     ((2001 2002 2003 2004) (make-meet-and-greet-visualizer))
+    ((3001 3002 3003 3004) (make-meet-and-greet-visualizer))
     (t (make-visualizer))))
 
 (defun make-steps-finish-predicate (steps)
