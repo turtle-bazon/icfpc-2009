@@ -74,6 +74,7 @@
                  (format t "Score at step ~A: ~A~%" steps (getf (simulator-info simulator :hohmann) :score))
                  (finish)))
       (ignore-errors (sb-thread:terminate-thread control-thread)))
+    (let ((*print-case* :downcase)) (format t "Info at end:~%~S~%" (simulator-info simulator :hohmann)))
     (when solution (simulator::stop-dumper dumper))
     (visualizer-save visualizer result-path)))
 
@@ -146,10 +147,18 @@
     (vector-push-extend target-x (meet-and-greet-visualizer-target-xs visualizer))
     (vector-push-extend target-y (meet-and-greet-visualizer-target-ys visualizer))))
 
+(defun array-last-element (array)
+  (aref array (1- (length array))))
+
 (defmethod visualizer-save :after ((visualizer meet-and-greet-visualizer) result-path)
   (iter (for x in-vector (meet-and-greet-visualizer-target-xs visualizer))
         (for y in-vector (meet-and-greet-visualizer-target-ys visualizer))
         (for p-x previous x)
         (for p-y previous y)
         (unless (first-iteration-p)
-          (format *stream* "<line style='stroke: #ff0000' x1='~A' x2='~A' y1='~A' y2='~A' />~%" (coord p-x) (coord x) (coord p-y) (coord y)))))
+          (format *stream* "<line style='stroke: #ff0000' x1='~A' x2='~A' y1='~A' y2='~A' />~%" (coord p-x) (coord x) (coord p-y) (coord y))))
+  (format *stream* "<circle cx='~A' cy='~A' r='3' style='stroke:#000000; fill:#000000' />~%"
+          (coord (array-last-element (visualizer-xs visualizer))) (coord (array-last-element (visualizer-ys visualizer))))
+  (format *stream* "<circle cx='~A' cy='~A' r='3' style='stroke:#ff0000; fill:#f0000' />~%"
+          (coord (array-last-element (meet-and-greet-visualizer-target-xs visualizer)))
+          (coord (array-last-element (meet-and-greet-visualizer-target-ys visualizer)))))
