@@ -159,6 +159,6 @@
           (format *stream* "<line style='stroke: #ff0000' x1='~A' x2='~A' y1='~A' y2='~A' />~%" (coord p-x) (coord x) (coord p-y) (coord y))))
   (format *stream* "<circle cx='~A' cy='~A' r='3' style='stroke:#000000; fill:#000000' />~%"
           (coord (array-last-element (visualizer-xs visualizer))) (coord (array-last-element (visualizer-ys visualizer))))
-  (format *stream* "<circle cx='~A' cy='~A' r='3' style='stroke:#ff0000; fill:#f0000' />~%"
+  (format *stream* "<circle cx='~A' cy='~A' r='3' style='stroke:#ff0000; fill:#ff0000' />~%"
           (coord (array-last-element (meet-and-greet-visualizer-target-xs visualizer)))
           (coord (array-last-element (meet-and-greet-visualizer-target-ys visualizer)))))
