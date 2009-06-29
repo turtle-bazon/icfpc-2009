@@ -70,7 +70,7 @@
                (step-simulator simulator v-x v-y)
                (when solution (simulator::step-dumper dumper))
                (visualizer-collect visualizer simulator)
-               (when (> (getf (simulator-info simulator :hohmann) :score) 0.0d0)
+               (when (/= (getf (simulator-info simulator :hohmann) :score) 0.0d0)
                  (format t "Score at step ~A: ~A~%" steps (getf (simulator-info simulator :hohmann) :score))
                  (finish)))
       (ignore-errors (sb-thread:terminate-thread control-thread)))
