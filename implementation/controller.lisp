@@ -148,9 +148,8 @@
                      (for next-position = (2d-vector-+ position
                                                        (2d-vector-+ velocity
                                                                     (2d-vector-* 0.5d0 (gravity-acceleration-at position)))))
-                     (for next-radius = (2d-vector-length next-position))
-                     (if (or (and (< r-1 r-2) (< next-radius max-radius))
-                             (and (>= r-1 r-2) (> next-radius max-radius)))
+                     (if (or (and (< r-1 r-2) (< radius max-radius))
+                             (and (>= r-1 r-2) (> radius max-radius)))
                          (progn (multiple-value-bind (t-x t-y) (tangent-vector (2d-vector-x position) (2d-vector-y position) rotation)
                                   (let ((z (if (< r-1 r-2) second-thrust (- first-thrust))))
                                     (setf (control-structure-v-x c) (* t-x z)
