@@ -222,9 +222,9 @@
          (tau (time-to-change-orbit (2d-vector-length position) (2d-vector-length target-position)))
          (c-1 (- (angular-speed-at-orbit (2d-vector-length position))
                  (angular-speed-at-orbit (2d-vector-length target-position))))
-         (c-2 (+ alpha-0
+         (c-2 (+ (- alpha-0)
                  pi
-                 (- beta-0)
+                 beta-0
                  (- (* tau (angular-speed-at-orbit (2d-vector-length target-position))))))
          (z (nth-value 1 (floor c-2 (* 2 pi))))
          (wait-time (if (plusp c-1)
@@ -232,7 +232,9 @@
                            c-1)
                         (/ (- z)
                            c-1))))
-    (format t "time to change orbit = ~F~%" tau)
+    (format t "r-1 = ~F, r-2 = ~F, alpha-0 = ~F, beta-0 = ~F, tau = ~F, c-1 = ~F, c-2 = ~F, z = ~F~%"
+            (2d-vector-length position) (2d-vector-length target-position)
+            alpha-0 beta-0 tau c-1 c-2 z)
     wait-time))
 
 (defun our-position (c)
@@ -339,8 +341,8 @@
          (target-position (make-2d-vector :x target-x :y target-y))
          (wait-time (meet-and-greet-wait-time position target-position))
          (r-2 (2d-vector-length target-position)))
-    (format t "position = ~A,~%target-position = ~A,~%wait-time = ~A, r-2 = ~A~%"
-            position target-position wait-time r-2)
+    (format t "position = ~A,~%target-position = ~A,~%wait-time = ~A, r-1= = ~A, r-2 = ~A~%"
+            position target-position wait-time (2d-vector-length position) r-2)
     (iter (repeat (round wait-time))
           (setf (control-structure-v-x c) 0
                 (control-structure-v-y c) 0)
