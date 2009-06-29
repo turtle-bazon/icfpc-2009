@@ -92,7 +92,7 @@
     (setf (hohmann-visualizer-target-radius visualizer)
           (getf info :target-orbit-radius))))
 
-(defparameter *zoom* 9.5d4)
+(defparameter *zoom* 0.1d7)
 
 (defun vector-length (x y)
   (sqrt

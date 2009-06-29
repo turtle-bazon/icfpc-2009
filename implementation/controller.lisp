@@ -107,12 +107,12 @@
 
 (defun hohmann-change-circular-orbit (c target-radius)
   (let (x-1 x-2 y-1 y-2
-        rotation
-        r-1
-        (r-2 target-radius)
-        first-thrust
-        second-thrust
-        (simulator (control-structure-simulator c)))
+	    rotation
+	    r-1
+	    (r-2 target-radius)
+	    first-thrust
+	    second-thrust
+	    (simulator (control-structure-simulator c)))
     (let* ((info (simulator-info simulator :hohmann))
            (our-x (getf info :our-x))
            (our-y (getf info :our-y)))
@@ -121,9 +121,9 @@
             y-1 our-y
             first-thrust (hohmann-first-thrust r-1 r-2)
             second-thrust (hohmann-second-thrust r-1 r-2))
-    (format t "r-1 = ~A, r-2 = ~A, f-t = ~A, s-t = ~A~%" r-1 r-2 first-thrust second-thrust)
-    (setf (control-structure-v-x c) 0
-          (control-structure-v-y c) 0))
+      (format t "r-1 = ~A, r-2 = ~A, f-t = ~A, s-t = ~A~%" r-1 r-2 first-thrust second-thrust)
+      (setf (control-structure-v-x c) 0
+	    (control-structure-v-y c) 0))
     (control-structure-ctl-signal c)
     (control-structure-ctl-wait c)
     (let* ((info (simulator-info simulator :hohmann))
@@ -138,29 +138,23 @@
                 (control-structure-v-y c) (* t-y z)))
         (format t "fired thrusters (~A, ~A)~%" (control-structure-v-x c) (control-structure-v-y c))))
     (control-structure-ctl-signal c)
-    (iter (with max-radius = 0.0d0)(control-structure-ctl-wait c)
-          (for position = (our-position c))
-          (for p-position previous position)
-          (for radius = (2d-vector-length position))
-          (if (first-iteration-p)
-              (setf max-radius (if (< r-1 r-2) 0.0d0 radius))
-              (progn (for velocity = (2d-vector-- position p-position))
-                     (for next-position = (2d-vector-+ position
-                                                       (2d-vector-+ velocity
-                                                                    (2d-vector-* 0.5d0 (gravity-acceleration-at position)))))
-                     (if (or (and (< r-1 r-2) (< radius max-radius))
-                             (and (>= r-1 r-2) (> radius max-radius)))
-                         (progn (multiple-value-bind (t-x t-y) (tangent-vector (2d-vector-x position) (2d-vector-y position) rotation)
-                                  (let ((z (if (< r-1 r-2) second-thrust (- first-thrust))))
-                                    (setf (control-structure-v-x c) (* t-x z)
-                                          (control-structure-v-y c) (* t-y z))))
-                                (format t "fired thrusters (~A, ~A)~%" (control-structure-v-x c) (control-structure-v-y c))
-                                (control-structure-ctl-signal c)
-                                (finish)))
-                     (setf max-radius radius)))
-          (setf (control-structure-v-x c) 0.0d0
-                (control-structure-v-y c) 0.0d0)
-          (control-structure-ctl-signal c))
+    (iter (control-structure-ctl-wait c)
+	  (for position = (our-position c))
+	  (for radius = (2d-vector-length position))
+	  (for p-radius previous radius)
+	  (unless (first-iteration-p)
+	    (when (funcall (if (< r-1 r-2) '< '>) radius p-radius)
+	      (format t "R-1:~a, R-2:~a, R:~a, PR:~a~%" r-1 r-2 radius p-radius)
+	      (multiple-value-bind (t-x t-y) (tangent-vector (2d-vector-x position) (2d-vector-y position) rotation)
+		(let ((z (if (< r-1 r-2) second-thrust (- first-thrust))))
+		  (setf (control-structure-v-x c) (* t-x z)
+			(control-structure-v-y c) (* t-y z))))
+	      (format t "fired thrusters (~A, ~A)~%" (control-structure-v-x c) (control-structure-v-y c))
+	      (control-structure-ctl-signal c)
+	      (finish)))
+	  (setf (control-structure-v-x c) 0.0d0
+		(control-structure-v-y c) 0.0d0)
+	  (control-structure-ctl-signal c))
     (control-structure-ctl-wait c)))
 
 (defun skip-turn (c)
@@ -186,8 +180,8 @@
          (target-orbit (getf info :target-orbit-radius))
          (orbit-diff (- target-orbit our-orbit))
          (orbit-delta (/ orbit-diff 2)))
-;    (hohmann-change-circular-orbit c (+ our-orbit (* orbit-delta 1)))
-;    (skip-n-turns c 10)
+    (hohmann-change-circular-orbit c (+ our-orbit (* orbit-delta 1)))
+    (skip-n-turns c 1000)
 ;    (hohmann-change-circular-orbit c (+ our-orbit (* orbit-delta 2)))
 ;    (hohmann-change-circular-orbit c (+ our-orbit (* orbit-delta 3)))
 ;    (hohmann-change-circular-orbit c (+ our-orbit (* orbit-delta 4)))
