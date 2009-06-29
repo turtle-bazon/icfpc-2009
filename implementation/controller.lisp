@@ -281,7 +281,7 @@
       (control-structure-ctl-signal c)
       (control-structure-ctl-wait c))))
 
-(defparameter *dat-path* #p "/home/dvk/tmp/")
+(defparameter *dat-path* #p "/tmp/")
 
 (defun meet-and-greet-active-chase (c)
   (let* ((stream-x (open (merge-pathnames "position-x.dat1" *dat-path*) :direction :output :if-exists :supersede))
